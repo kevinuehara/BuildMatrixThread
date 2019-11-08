@@ -5,173 +5,156 @@
 #include <semaphore.h> 
 #include <time.h>
 
-#define FILE_WRITE "out.txt"
-
+int ** matrix;
+FILE * file_write;
 sem_t lock; 
 
-pthread_mutex_t mutex;
-FILE * file_write;
-
-typedef struct DataManager {
-    int ** matrix;
+typedef struct Data {
     int line;
-    int limit;
-    int maxCol;
-    int break_line;
-} DataManager;
+    int limit_line;
+    int limit_col;
+} Data;
 
-int array[1000000];
-int * array_qtd_numbers_each_file;
-int thread_no, totalReal, maxColumn, nextBreak = 0; 
+typedef struct ArrayDataManager {
+    int * array;
+    int top;
+} ArrayDataManager;
+
 
 void * build_matrix_in_file(void *args) {
-    DataManager * my_data =  (DataManager *) args;
+    Data * my_data =  (Data *) args;
 
-    int limit = my_data->limit;
-    int line = my_data->line;
-    int comp = line;
-
-    if(line == 1) 
-        fprintf(file_write, "%d ", array[0]);
-    
-    printf("LINE: %d, LIMIT: %d, BREAK: %d\n", line, limit, my_data->break_line);
-    for(int i=line; i<=limit; i++) {
-        printf("I: %d -> LIMIT: %d -> ARRAY POS: %d \n", i, limit, array[i]);
-        if(i == my_data->break_line) {
-            fprintf(file_write, "\n");
+    for(int i=my_data->line; i<=my_data->limit_line; i++) {
+        for(int j=0; j<my_data->limit_col; j++) {
+            fprintf(file_write, "%d ", matrix[i][j]);
         }
-        if(i < totalReal)
-            fprintf(file_write, "%d ", array[i]);
+        fprintf(file_write, "\n");
     }
 
-    printf("\n");
     pthread_exit(NULL);
-    
 }
 
-int verifyColumn(int qtdFiles) {
+int * sort_array(int * array, int size) {
+    int aux = 0;
+    for(int i=0; i<size; i++) {
+        for(int j=i+1; j<size; j++) {
+            if(array[i] > array[j]) {
+                aux = array[i];
+                array[i] = array[j];
+                array[j] = aux;
+            }
+        }
+    }
+
+    return array;
+}
+
+int verify_major_column(ArrayDataManager * arrayData, int qtdFiles) {
     int col = 0;
 
     for(int i=0; i<qtdFiles; i++) {
-        if(array_qtd_numbers_each_file[i] > col)
-            col = array_qtd_numbers_each_file[i];
+        if(arrayData[i].top > col) {
+            col = arrayData[i].top; 
+        }   
     }
-
     return col;
 }
 
+
 int main(int argc, char ** argv) {
-    time_t start_time = time(NULL);
-    int number;
-    int totalNumbers = 0;
-    int cont_numbers, index = 0;
-    int number_threads = atoi(argv[1]);
+    int number_of_threads = atoi(argv[1]);
+    char * file_name_out = argv[argc-1];
+    int number_read = 0;
+    int qtdLines = argc-3;
 
-    DataManager dataManager;
-    
-    array_qtd_numbers_each_file = malloc(sizeof(int) * (argc -2));
-    // READING FILES
-    int c =0;
-    for (int i=2; i<argc; i++) {
+    ArrayDataManager arrayData[argc-3];
+
+    int cont_files = 0;
+    for (int i=2; i<argc-1; i++) {
         FILE * file = fopen(argv[i], "r");
-        cont_numbers=0;
+        int size_array = 0;
 
         if(file == NULL)
             return EXIT_FAILURE;
 
-        while(fscanf(file, "%d", &number) == 1){
-            cont_numbers++;
-            totalNumbers++;
+        while(fscanf(file, "%d", &number_read) == 1){
+            size_array++;
         }
 
-        array_qtd_numbers_each_file[index] = cont_numbers;
-        index++; 
+        arrayData[cont_files].top = size_array;
+        cont_files++;
     }
 
-    int qtdLines = argc-2;
-    maxColumn = verifyColumn(qtdLines);
+    int major_col = verify_major_column(arrayData, argc-3);
+    printf("MAIOR COLUNA: %d\n", major_col);
 
-    for (int i=2; i<argc; i++) {
+    cont_files = 0;
+    for (int i=2; i<argc-1; i++) {
         FILE * file = fopen(argv[i], "r");
-        int contador = 0;
-        if(file == NULL)
-            return EXIT_FAILURE;
+        int cont = 0;
+        rewind(file);
 
-        while(fscanf(file, "%d", &number) == 1){
-            array[c] = number;
-            c++;
-            contador++;
-            totalReal++;
+        int * array = (int *) malloc(sizeof(int) * major_col);
+
+        while(fscanf(file, "%d", &number_read) == 1){
+            array[cont] = number_read;
+            cont++;
         }
 
-        while(contador < maxColumn) {
-            array[c] = 0;
-            contador++;
-            totalReal++;
-            c++;
+        while(cont < major_col) {
+            array[cont] = 0;
+            cont++;
+        }
+
+        sort_array(array, major_col);
+        arrayData[cont_files].array = array;
+        cont_files++;
+    }
+
+
+    matrix = (int **)malloc(qtdLines * sizeof(int*));
+    for(int i = 0; i < qtdLines; i++) matrix[i] = (int *)malloc(major_col * sizeof(int));
+
+    for(int i=0; i<qtdLines; i++) {
+        for(int j=0; j<major_col; j++) {
+            matrix[i][j] = arrayData[i].array[j];
         }
     }
 
-    //CALLING THREADS
-    pthread_t outrosTIDs[number_threads];
-    DataManager array_dm[number_threads];
+    file_write = fopen(file_name_out, "w");
+    int qtdThreadsWillUse = 0;
 
-    pthread_mutex_init(&mutex, NULL);
+    if(number_of_threads >= qtdLines) qtdThreadsWillUse = qtdLines;
+    else qtdThreadsWillUse = number_of_threads;
 
-    file_write = fopen(FILE_WRITE, "w+");
+    pthread_t outrosTIDs[qtdThreadsWillUse];
+    Data array_data_thread[qtdThreadsWillUse];
 
-    int newLimit = 0;
+    for(int i=0; i<qtdThreadsWillUse; i++) {
+            int limit = 0;
+            int line = 0;
 
-    int auxBreak = maxColumn * (thread_no + 1);
-    nextBreak = auxBreak;
-    int resto = 0;
+        if (qtdLines % number_of_threads == 0) {
+            limit = (i + 1) * (qtdLines / qtdThreadsWillUse) - 1;
+            line = i * (qtdLines / qtdThreadsWillUse);
+        } else if(i+1 == qtdThreadsWillUse){
+            limit = (i + 1) * (qtdLines / qtdThreadsWillUse) -1 + (qtdLines % number_of_threads);
+            line = i * (qtdLines / qtdThreadsWillUse);
+        }
 
-    printf("TOTAL: %d\n", totalReal);
+        printf("LINE_INIT: %d - LIMIT: %d\n",line, limit);
 
-    //calculando mod
-    if(totalReal % number_threads != 0) {
-        resto = totalReal % number_threads;
+        array_data_thread[i].limit_col = major_col;
+        array_data_thread[i].line = line;
+        array_data_thread[i].limit_line = limit;
+
+        pthread_create(&outrosTIDs[i], NULL, build_matrix_in_file, &array_data_thread[i]);
+        printf("CREATING THREAD (id = %ld)\n", outrosTIDs[i]);        
     }
 
-    for(int i=0; i<number_threads; i++) {
-        array_dm[i] = dataManager;
-
-        int line = newLimit;
-        newLimit += totalReal/number_threads;
-        
-        int limit = (i + 1) * (totalReal/number_threads);
-
-        if(resto != 0 && number_threads == i+1) { 
-            limit = limit + resto; 
-        }
-
-        array_dm[i].line = line+1;
-        array_dm[i].limit = limit;
-        array_dm[i].maxCol = maxColumn;
-
-        //não vai ter quebra de linha
-        if(limit < nextBreak) {
-             array_dm[i].break_line = auxBreak;
-             nextBreak = auxBreak;
-             thread_no++;
-
-        } else if(limit >= nextBreak){
-            thread_no++;
-
-            array_dm[i].break_line = auxBreak;
-            nextBreak += maxColumn;
-            auxBreak = nextBreak;
-        }
-
-        pthread_create(&outrosTIDs[i], NULL, build_matrix_in_file, &array_dm[i]);
+    for(int i=0; i<qtdThreadsWillUse; i++)
         pthread_join(outrosTIDs[i], NULL);
-        printf("CREATING THREAD (id = %ld)\n", outrosTIDs[i]);
-    }
 
-    time_t end_time = time(NULL);
-
-    printf("TOTAL NUMEROS: %d\n", totalReal);
-    printf("TEMPO TOTAL: %ld segundos", (end_time- start_time));
-    
+ 
     return 0;
 }
