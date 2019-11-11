@@ -5,6 +5,7 @@
 #include <semaphore.h> 
 #include <time.h>
 
+
 int ** matrix;
 FILE * file_write;
 sem_t lock; 
@@ -22,8 +23,9 @@ typedef struct ArrayDataManager {
 
 
 void * build_matrix_in_file(void *args) {
-    Data * my_data =  (Data *) args;
+    sem_wait(&lock); 
 
+    Data * my_data =  (Data *) args;
     for(int i=my_data->line; i<=my_data->limit_line; i++) {
         for(int j=0; j<my_data->limit_col; j++) {
             fprintf(file_write, "%d ", matrix[i][j]);
@@ -31,6 +33,7 @@ void * build_matrix_in_file(void *args) {
         fprintf(file_write, "\n");
     }
 
+    sem_post(&lock);
     pthread_exit(NULL);
 }
 
@@ -67,6 +70,9 @@ int main(int argc, char ** argv) {
     int number_read = 0;
     int qtdLines = argc-3;
 
+    clock_t start_time, end_time;
+    start_time = clock();
+
     ArrayDataManager arrayData[argc-3];
 
     int cont_files = 0;
@@ -86,13 +92,11 @@ int main(int argc, char ** argv) {
     }
 
     int major_col = verify_major_column(arrayData, argc-3);
-    printf("MAIOR COLUNA: %d\n", major_col);
 
     cont_files = 0;
     for (int i=2; i<argc-1; i++) {
         FILE * file = fopen(argv[i], "r");
         int cont = 0;
-        rewind(file);
 
         int * array = (int *) malloc(sizeof(int) * major_col);
 
@@ -101,12 +105,13 @@ int main(int argc, char ** argv) {
             cont++;
         }
 
+        sort_array(array, cont);
+
         while(cont < major_col) {
             array[cont] = 0;
             cont++;
         }
 
-        sort_array(array, major_col);
         arrayData[cont_files].array = array;
         cont_files++;
     }
@@ -127,22 +132,21 @@ int main(int argc, char ** argv) {
     if(number_of_threads >= qtdLines) qtdThreadsWillUse = qtdLines;
     else qtdThreadsWillUse = number_of_threads;
 
+    sem_init(&lock, 0, 1);
     pthread_t outrosTIDs[qtdThreadsWillUse];
     Data array_data_thread[qtdThreadsWillUse];
 
     for(int i=0; i<qtdThreadsWillUse; i++) {
-            int limit = 0;
-            int line = 0;
+        int limit = 0;
+        int line = 0;
 
-        if (qtdLines % number_of_threads == 0) {
-            limit = (i + 1) * (qtdLines / qtdThreadsWillUse) - 1;
-            line = i * (qtdLines / qtdThreadsWillUse);
-        } else if(i+1 == qtdThreadsWillUse){
-            limit = (i + 1) * (qtdLines / qtdThreadsWillUse) -1 + (qtdLines % number_of_threads);
+        limit = (i + 1) * (qtdLines / qtdThreadsWillUse) - 1;
+        line = i * (qtdLines / qtdThreadsWillUse);
+
+        if(i+1 == qtdThreadsWillUse){
+            limit = qtdLines - 1;
             line = i * (qtdLines / qtdThreadsWillUse);
         }
-
-        printf("LINE_INIT: %d - LIMIT: %d\n",line, limit);
 
         array_data_thread[i].limit_col = major_col;
         array_data_thread[i].line = line;
@@ -154,7 +158,13 @@ int main(int argc, char ** argv) {
 
     for(int i=0; i<qtdThreadsWillUse; i++)
         pthread_join(outrosTIDs[i], NULL);
+        
+    sem_destroy(&lock); 
 
- 
+    end_time = clock();
+    double diff_time = (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+    printf("TEMPO TOTAL: %0.4f\n", diff_time);
+   
     return 0;
 }

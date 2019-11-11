@@ -7,7 +7,9 @@ int main(int argc, char ** argv) {
     int qtdNumber = atoi(argv[2]);
 
     for(int i=0; i<qtdNumber; i++) {
-        fprintf(file, "%d", i+1);
+        int r = rand() % 500;
+        
+        fprintf(file, "%d", i);
 
         if(i < qtdNumber)
             fprintf(file, "\n");
