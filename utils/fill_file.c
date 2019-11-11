@@ -9,7 +9,7 @@ int main(int argc, char ** argv) {
     for(int i=0; i<qtdNumber; i++) {
         int r = rand() % 500;
         
-        fprintf(file, "%d", i);
+        fprintf(file, "%d", r);
 
         if(i < qtdNumber)
             fprintf(file, "\n");
