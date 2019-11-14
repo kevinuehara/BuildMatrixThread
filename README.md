@@ -42,3 +42,13 @@ e a **ArrayDataManager**.
     <li><b>Data:</b> struct responsável por gerenciar o acesso à matriz pelas threads. Possui atributos que identificam as linhas e as colunas que as threads devem ler para escrever no arquivo final.</li>
     <li><b>ArrayDataManager:</b> struct responsável por armazenar o array que representa os números de um arquivo lido, além disso possui o atributo top que representa a quantidade de números no array. Para cada arquivo lido é criado uma struct para armazenar os números lidos.</li>
 </ul>
+
+<h4>Funções do programa</h4>
+
+<ul>
+    <li><b>build_matrix_in_file:</b> função responsável por escrever a matriz no arquivo de saída, sendo utilizada para a criação das threads.</li>
+    <li><b>sort_array:</b> função responsável por ordenar o array recebido como parâmetro.</li>
+    <li><b>verify_major_column:</b> função responsável por verificar qual o maior número de colunas dos arquivos lidos, para que possa ser definido qual será a quantidade de colunas na matriz.</li>
+</ul>
+
+Ao final do programa são criadas as threads para escrever a matriz no arquivo de saída, finalizando-o.
