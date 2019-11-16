@@ -28,7 +28,7 @@ Exemplo:
 
 ```shell
 gcc fill_file.c -o fill_file
-./fill_file 2 file1.dat 500
+./fill_file file1.dat 500
 ```
 
 # Documentação
