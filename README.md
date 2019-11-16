@@ -52,3 +52,27 @@ e a **ArrayDataManager**.
 </ul>
 
 Ao final do programa são criadas as threads para escrever a matriz no arquivo de saída, finalizando-o.
+
+# Resultados
+No vídeo fornecido com o este relatório foram realizados os testes com o programa utilizando 2, 4, 8 e 16 threads para um total de 2 arquivos, contendo 10000 números e 5000 números respectivamente. O total de números processados foram 20000 pois o primeiro arquivo contém a maior quantidade de nṹmeros, ou seja, a maior quantidade de colunas da matriz. Logo, o segundo arquivo que possui 5000 será preenchido com 0 até chegar nos 10000 números.
+
+Os resultados obtidos foram respectivamente:
+
+Quantidade de Threads | Tempo (segundos)
+--------------------- | ----------------
+2                     | 0.2302
+4                     | 0.2344
+8                     | 0.2353
+16                    | 0.2388
+
+Gráfico de apresentação dos resultados:
+            
+![grafico](https://user-images.githubusercontent.com/20498649/68985956-61f63d00-07f9-11ea-8023-02308f457e49.png)
+
+# Conclusão
+
+A realização desse projeto foi uma ótima forma de se entender o funcionamento das threads e sua implementação utilizando a biblioteca PThreads em C. Com os resultados percebe-se que a execução do programa se tornou mais rápida do que se houvesse apenas a thread principal. Através da distribuição das tarefas o programa executou de forma mais rápida. <br/>
+Entretanto, com o aumento das threads percebe-se que há uma demora em milésimos de segundos, isso muitas vezes deve-se aos núcleos do computador em questão. Tal aumento fica mais evidente quando o programa roda utilizando 8 e 16 threads.  <br/>
+O principal desafio era entender o funcionamento do projeto e sua
+estruturação do código do programa para ordenar, inserir na matriz e armazenar os dados no arquivo de saída com as threads em execução.
+
